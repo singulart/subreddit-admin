@@ -50,6 +50,7 @@ public class CacheConfiguration {
             createCache(cm, net.lex.reddit.subs.domain.User.class.getName());
             createCache(cm, net.lex.reddit.subs.domain.Authority.class.getName());
             createCache(cm, net.lex.reddit.subs.domain.User.class.getName() + ".authorities");
+            createCache(cm, net.lex.reddit.subs.domain.RedditSubsCategorized.class.getName());
             // jhipster-needle-ehcache-add-entry
         };
     }
