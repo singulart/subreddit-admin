@@ -1,0 +1,3 @@
+org.springframework.test.context.ContextCustomizerFactory = net.lex.reddit.subs.\
+    config.SqlTestContainersSpringContextCustomizerFactory,net.lex.reddit.subs.\
+    config.TestContainersSpringContextCustomizerFactory
