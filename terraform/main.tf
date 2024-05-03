@@ -14,6 +14,12 @@ module "vpc" {
   private_subnets = ["10.0.1.0/24"]
   public_subnets  = ["10.0.101.0/24"]
 
+
+  #### ATTENTION! COST IMPACT!
+  #### NAT Gateways are billed hourly and they are not super cheap. 
+  #### However, in this particular case the WWW connectivity they provide is only needed at the time "user data" script runs.
+  #### With Terraform it's not possible to provision temporary, disposable, resources which get deleted in the end of `apply` phase. 
+  #### With all that said, after `apply` finishes, NAT Gateway needs to be deleted manually, or else there would be monthly cost associated with it. 
   enable_nat_gateway = true
 
   default_security_group_egress = [
@@ -25,7 +31,6 @@ module "vpc" {
       cidr_blocks = "0.0.0.0/0"
     }
   ]
- #  reuse_nat_ips = true 
   
   tags = {
     Terraform   = "true"
@@ -33,26 +38,6 @@ module "vpc" {
     Owner       = "lex"
   }
 }
-
-# resource "aws_ec2_instance_connect_endpoint" "lex_ec2_instance_connect_endpoint" {
-#   subnet_id = module.vpc.private_subnets[0]
-# }
-
-# module "vpc_endpoints" {
-#   source = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
-#   version = "~> 5.8"
-  
-#   vpc_id = module.vpc.vpc_id
-#   endpoints = {
-#     ec2 = {
-#         service             = "ec2"
-#         private_dns_enabled = true
-#         security_group_ids  = [module.vpc.default_security_group_id]
-#         subnet_ids          = []
-#         tags                = { Name = "lex-ec2-vpc-endpoint" }
-#       }
-#   }  
-# }
 
 module "log_group" {
   source = "terraform-aws-modules/cloudwatch/aws//modules/log-group"
@@ -96,13 +81,39 @@ module "ec2_instance" {
 
   user_data = <<-EOF
                 #!/bin/bash
-                yum update -y
-                yum install -y awslogs
+                # Installing additional packages
+                yum update -y && yum install -y awslogs && yum install -y postgresql15
+                systemctl start awslogsd
+                systemctl enable awslogsd.service
+                
+                # Installing Docker
                 sudo amazon-linux-extras install docker -y
                 sudo service docker start
                 sudo usermod -a -G docker ec2-user
-                systemctl start awslogsd
-                systemctl enable awslogsd.service
+
+                # Create persistent location for PostgreSQL data
+                sudo mkdir -p /opt/postgresql/data
+
+                # Start PostgreSQL 
+                docker run --name reddit-postgresql \
+                  --log-driver=awslogs \
+                  --log-opt awslogs-group=/ec2/lex-monolith/postgres \
+                  --log-opt awslogs-create-group=true \
+                  -p 5432:5432 \
+                  -v /opt/postgresql/data:/var/lib/postgresql/data \
+                  -e POSTGRES_PASSWORD=TODO_REPLACE_WITH_AWS_SECRET_MANAGER \
+                  -d postgres 
+
+                # Start Elastic 
+                docker run --name reddit-elasticsearch \
+                  --log-driver=awslogs \
+                  --log-opt awslogs-group=/ec2/lex-monolith/elastic \
+                  --log-opt awslogs-create-group=true \
+                  -p 9200:9200 \
+                  -p 9300:9300 \
+                  -e "discovery.type=single-node" \
+                  -e"xpack.security.enabled=false" \
+                  -d docker.elastic.co/elasticsearch/elasticsearch:8.13.3
                 EOF
   user_data_replace_on_change = true
 
