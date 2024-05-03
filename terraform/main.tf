@@ -3,9 +3,9 @@ provider "aws" {
 }
 
 
-module "vpc_mod_lex" {
+module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.8.1"
+  version = "~> 5.8"
 
   name = "lex-vpc"
   cidr = "10.0.0.0/16"
@@ -15,6 +15,16 @@ module "vpc_mod_lex" {
   public_subnets  = ["10.0.101.0/24"]
 
   enable_nat_gateway = true
+
+  default_security_group_egress = [
+    {
+      description = "HTTPS egress"
+      from_port   = 443
+      to_port     = 443
+      protocol    = "TCP"
+      cidr_blocks = "0.0.0.0/0"
+    }
+  ]
  #  reuse_nat_ips = true 
   
   tags = {
@@ -24,68 +34,32 @@ module "vpc_mod_lex" {
   }
 }
 
-module "lex_log_group" {
-  source = "terraform-aws-modules/cloudwatch/aws//modules/log-group"
-  version = "5.3.1"  
+# resource "aws_ec2_instance_connect_endpoint" "lex_ec2_instance_connect_endpoint" {
+#   subnet_id = module.vpc.private_subnets[0]
+# }
 
+# module "vpc_endpoints" {
+#   source = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
+#   version = "~> 5.8"
+  
+#   vpc_id = module.vpc.vpc_id
+#   endpoints = {
+#     ec2 = {
+#         service             = "ec2"
+#         private_dns_enabled = true
+#         security_group_ids  = [module.vpc.default_security_group_id]
+#         subnet_ids          = []
+#         tags                = { Name = "lex-ec2-vpc-endpoint" }
+#       }
+#   }  
+# }
+
+module "log_group" {
+  source = "terraform-aws-modules/cloudwatch/aws//modules/log-group"
+  version = "~> 5.3"
   name = "/ec2/lex-application-logs"
 }
 
-
-resource "aws_iam_role" "ec2_cw_logs_role" {
-  name = "ec2_cw_logs_role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      },
-    ]
-  })
-}
-
-resource "aws_iam_role_policy" "ec2_cw_logs_policy" {
-  name   = "EC2CloudWatchLogsPolicy"
-  role   = aws_iam_role.ec2_cw_logs_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-          "logs:CreateLogGroup"
-        ],
-        Effect   = "Allow",
-        Resource = "arn:aws:logs:*:*:*"
-      },
-    ]
-  })
-}
-
-module "iam_assumable_role" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role"
-  version = "5.39.0"
-
-  create_role = true
-  role_name   = "EC2CloudWatchLogsRole"
-  trusted_role_arns = ["arn:aws:iam::${module.vpc_mod_lex.vpc_owner_id}:root"]
-
-  custom_role_policy_arns = [
-    "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
-  ]
-}
-
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "EC2CloudWatchLogsProfile"
-  role = module.iam_assumable_role.iam_role_name
-}
 
 data "aws_ami" "selected" {
   owners      = ["amazon"] 
@@ -97,17 +71,28 @@ data "aws_ami" "selected" {
   }
 }
 
-
+# resource "aws_key_pair" "deployer" {
+#   key_name   = "my-ssh-key"
+#   public_key = file("~/.ssh/lex-aws-ec2.pub") 
+# }
 
 module "ec2_instance" {
   source  = "terraform-aws-modules/ec2-instance/aws"
-  version = "5.6.1"
+  version = "~> 5.6"
 
   name           = "LexMonolith"
   instance_type  = "t4g.2xlarge"
   ami            = data.aws_ami.selected.id
-  subnet_id      = module.vpc_mod_lex.private_subnets[0]
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+  subnet_id      = module.vpc.private_subnets[0]
+  monitoring     = true
+  create_iam_instance_profile = true
+  iam_role_name               = "lex_monolith_ec2_role"
+  iam_role_path               = "/ec2/"
+  iam_role_description        = "Role that enables sending logs from this instance to CloudWatch"
+  iam_role_policies = {
+    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    CloudWatchAgentServerPolicy  = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  }
 
   user_data = <<-EOF
                 #!/bin/bash
@@ -119,7 +104,7 @@ module "ec2_instance" {
                 systemctl start awslogsd
                 systemctl enable awslogsd.service
                 EOF
-
+  user_data_replace_on_change = true
 
   tags = {
     "Name" = "LexMonolith"
