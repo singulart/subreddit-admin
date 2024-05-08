@@ -1,4 +1,63 @@
-# SubredditsAdmin
+# Building and publishing the Docker image for AWS
+
+JHipster-generated README.md has a lot to improve when production deployment matters are concerned.
+
+This project was created with AWS containerized deployment in mind. The Docker image needs to be built using 64bit architecture:
+`npm run java:docker:arm64`.
+
+After the image is built, you can push it to the AWS Elastic Container Repository (make sure to create one beforehand!):
+
+```sh
+docker tag subredditsadmin <AWS ACCOUNT NUMERIC ID>.dkr.ecr.<AWS REGION>.amazonaws.com/subredditsadmin:latest`
+docker push <AWS ACCOUNT NUMERIC ID>.dkr.ecr.<AWS REGION>.amazonaws.com/subredditsadmin:latest
+```
+
+If Docker errors out credentials-related errors, you probably need to login first:
+
+```sh
+aws ecr get-login-password --region <AWS REGION>  | docker login --username AWS --password-stdin <AWS ACCOUNT NUMERIC ID>.dkr.ecr.<AWS REGION>.amazonaws.com
+```
+
+# (Almost) automated AWS infra
+
+AWS infrastructure creation was automated using Terraform. To save on AWS costs, this project uses only one EC2 to run both the Java app and its dependencies: PostgreSQL database and ElasticSearch. This is obviously not a recommended way to deal with production systems, but it does the job as a proof of concept.
+
+Infra provisioning is as simple as:
+
+```sh
+cd terraform
+terraform init
+terraform apply
+```
+
+This will take a while to execute, but in the end you'll get the ready-to-use AWS VPC. Both PostgreSQL and Elastic will be up and running! PostgreSQL user and application database will also be created for you. All that's left to do is to deploy the Java application.
+
+# Manual Deployment to EC2
+
+Deployment of the Java app to EC2 was not automated with Terraform, so you need to ssh to the EC2 and spin it up manually. If you wonder why: it's much faster to hop on a EC2 box and run one `docker run` command manually than re-create the entire instance from scratch with Terraform.
+
+The easiest way to access the EC2 in private VPC subnet without compromising the overall security is through AWS Session Manager. It will log in under the different user, so the first thing you'd want to do is to switch back to ec2-user: `sudo -i -u ec2-user`.
+
+Then simply run the Java app:
+
+```sh
+docker run --name tidder \
+        --network=reddit-network \
+        --log-driver=awslogs \
+        --log-opt awslogs-group=/ec2/app \
+        --log-opt awslogs-create-group=true \
+        -p 8080:8080 \
+        -e SPRING_ELASTICSEARCH_URIS=http://reddit-elasticsearch:9200 \
+        -e SPRING_DATASOURCE_URL=jdbc:postgresql://reddit-postgresql:5432/SubredditsAdmin \
+        -e SPRING_DATASOURCE_PASSWORD=TODO_REPLACE_WITH_AWS_SECRET_MANAGER \
+        -d 557017828051.dkr.ecr.us-east-1.amazonaws.com/subredditsadmin:latest
+```
+
+# Note on CloudWatch
+
+EC2 logs from all three ifrastructure pieces (the application itself, the DB and the search index) are sent to AWS CloudWatch groups "/ec2/XYZ". This should give enough insight into what's going on.
+
+# Reddit Subs Admin UI
 
 This application was generated using JHipster 8.4.0, you can find documentation and help at [https://www.jhipster.tech/documentation-archive/v8.4.0](https://www.jhipster.tech/documentation-archive/v8.4.0).
 
