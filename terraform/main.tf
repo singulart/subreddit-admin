@@ -73,47 +73,85 @@ module "ec2_instance" {
   create_iam_instance_profile = true
   iam_role_name               = "lex_monolith_ec2_role"
   iam_role_path               = "/ec2/"
-  iam_role_description        = "Role that enables sending logs from this instance to CloudWatch"
+  iam_role_description        = "Enables sending logs to CloudWatch, pulling from ECR and connecting using Session Manager"
   iam_role_policies = {
-    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
-    CloudWatchAgentServerPolicy  = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+    AmazonSSMManagedInstanceCore       = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    CloudWatchAgentServerPolicy        = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+    AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   }
 
   user_data = <<-EOF
                 #!/bin/bash
-                # Installing additional packages
-                yum update -y && yum install -y awslogs && yum install -y postgresql15
-                systemctl start awslogsd
+
+                POSTGRESQL_VERSION=postgresql15
+                ELASTIC_VERSION=8.13.3
+
+                DOCKER_NETWORK=reddit-network
+                POSTGRES_CONTAINER=reddit-postgresql
+                POSTGRES_DATA_DIR=/opt/postgresql/data
+                POSTGRES_DB=SubredditsAdmin
+                POSTGRES_USER=SubredditsAdmin
+                ES_CONTAINER=reddit-elasticsearch
+                POSTGRES_PASSWORD=TODO_REPLACE_WITH_AWS_SECRET_MANAGER
+                AWSLOGS_GROUP_PG=/ec2/lex-monolith/postgres
+                AWSLOGS_GROUP_ES=/ec2/lex-monolith/elastic
+
+                # Update and install packages
+                yum update -y
+                yum install -y awslogs 
+                yum install -y $POSTGRESQL_VERSION 
+                yum install -y docker
+
+                # Configure and start AWS Logs
+                systemctl start awslogsd.service
                 systemctl enable awslogsd.service
-                
-                # Installing Docker
-                sudo amazon-linux-extras install docker -y
-                sudo service docker start
-                sudo usermod -a -G docker ec2-user
+
+                # Install Docker and configure the service
+                amazon-linux-extras install docker -y
+                service docker start
+                usermod -a -G docker ec2-user
 
                 # Create persistent location for PostgreSQL data
-                sudo mkdir -p /opt/postgresql/data
+                sudo mkdir -p $POSTGRES_DATA_DIR
 
-                # Start PostgreSQL 
-                docker run --name reddit-postgresql \
+                # Create Docker network
+                docker network create $DOCKER_NETWORK
+
+                # Start PostgreSQL container
+                docker run --name $POSTGRES_CONTAINER \
+                  --network=$DOCKER_NETWORK \
                   --log-driver=awslogs \
-                  --log-opt awslogs-group=/ec2/lex-monolith/postgres \
+                  --log-opt awslogs-group=$AWSLOGS_GROUP_PG \
                   --log-opt awslogs-create-group=true \
                   -p 5432:5432 \
-                  -v /opt/postgresql/data:/var/lib/postgresql/data \
-                  -e POSTGRES_PASSWORD=TODO_REPLACE_WITH_AWS_SECRET_MANAGER \
-                  -d postgres 
+                  -v $POSTGRES_DATA_DIR:/var/lib/postgresql/data \
+                  -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+                  -d postgres
 
-                # Start Elastic 
-                docker run --name reddit-elasticsearch \
+                echo 'PostgreSQL container running'
+                sleep 10
+                echo 'Wait complete'
+
+                # Create PostgreSQL user
+                echo 'Creating user'
+                printf "$POSTGRES_PASSWORD\n$POSTGRES_PASSWORD\n" | \
+                  docker exec -i $POSTGRES_CONTAINER createuser $POSTGRES_USER -P -s -U postgres
+
+                # Create PostgreSQL database
+                echo 'Creating DB'
+                docker exec -i $POSTGRES_CONTAINER createdb $POSTGRES_DB -U $POSTGRES_USER
+
+                # Start Elasticsearch container
+                docker run --name $ES_CONTAINER \
+                  --network=$DOCKER_NETWORK \
                   --log-driver=awslogs \
-                  --log-opt awslogs-group=/ec2/lex-monolith/elastic \
+                  --log-opt awslogs-group=$AWSLOGS_GROUP_ES \
                   --log-opt awslogs-create-group=true \
                   -p 9200:9200 \
                   -p 9300:9300 \
                   -e "discovery.type=single-node" \
-                  -e"xpack.security.enabled=false" \
-                  -d docker.elastic.co/elasticsearch/elasticsearch:8.13.3
+                  -e "xpack.security.enabled=false" \
+                  -d docker.elastic.co/elasticsearch/elasticsearch:$ELASTIC_VERSION
                 EOF
   user_data_replace_on_change = true
 
