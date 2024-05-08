@@ -66,10 +66,6 @@ public class ElasticsearchIndexService {
         if (reindexLock.tryLock()) {
             try {
                 reindexForClass(RedditSubsCategorized.class, redditSubsCategorizedRepository, redditSubsCategorizedSearchRepository);
-                // if (!skipUserManagement && (!applicationType || applicationType === 'monolith' || applicationType === 'gateway')) {
-                //     reindexForClass(User.class, userRepository, userSearchRepository);
-                // }
-
                 log.info("Elasticsearch: Successfully performed reindexing");
             } finally {
                 reindexLock.unlock();
@@ -85,17 +81,6 @@ public class ElasticsearchIndexService {
         JpaRepository<T, ID> jpaRepository,
         ElasticsearchRepository<T, ID> elasticsearchRepository
     ) {
-        // elasticsearchTemplate.deleteIndex(entityClass);
-        // try {
-        //     elasticsearchTemplate.createIndex(entityClass);
-        // <%_ if (useResourceException) { _%>
-        // } catch (ResourceAlreadyExistsException e) {
-        // <%_ } else { _%>
-        // } catch (IndexAlreadyExistsException e) {
-        // <%_ } _%>
-        //     // Do nothing. Index was already concurrently recreated by some other service.
-        // }
-        // elasticsearchTemplate.putMapping(entityClass);
         if (jpaRepository.count() > 0) {
             // if a JHipster entity field is the owner side of a many-to-many relationship, it should be loaded manually
             List<Method> relationshipGetters = Arrays.stream(entityClass.getDeclaredFields())
