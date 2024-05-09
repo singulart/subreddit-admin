@@ -1,4 +1,0 @@
-variable "external_nat_ip_ids" {
-  description = "(Reused) NAT IP IDs"
-  type        = list(string)
-}

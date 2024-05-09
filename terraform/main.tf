@@ -2,15 +2,14 @@ provider "aws" {
   region = "us-east-1"
 }
 
-
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.8"
 
-  name = "lex-vpc"
+  name = "${var.app_name}-vpc"
   cidr = "10.0.0.0/16"
 
-  azs             = ["us-east-1a"]
+  azs             = var.azs
   private_subnets = ["10.0.1.0/24"]
   public_subnets  = ["10.0.101.0/24"]
 
@@ -35,16 +34,9 @@ module "vpc" {
   tags = {
     Terraform   = "true"
     Environment = "lab"
-    Owner       = "lex"
+    Owner       = var.app_name
   }
 }
-
-module "log_group" {
-  source = "terraform-aws-modules/cloudwatch/aws//modules/log-group"
-  version = "~> 5.3"
-  name = "/ec2/lex-application-logs"
-}
-
 
 data "aws_ami" "selected" {
   owners      = ["amazon"] 
@@ -56,17 +48,12 @@ data "aws_ami" "selected" {
   }
 }
 
-# resource "aws_key_pair" "deployer" {
-#   key_name   = "my-ssh-key"
-#   public_key = file("~/.ssh/lex-aws-ec2.pub") 
-# }
-
 module "ec2_instance" {
   source  = "terraform-aws-modules/ec2-instance/aws"
   version = "~> 5.6"
 
-  name           = "LexMonolith"
-  instance_type  = "t4g.2xlarge"
+  name           = "${var.app_name}Monolith"
+  instance_type  = var.ec2_type
   ami            = data.aws_ami.selected.id
   subnet_id      = module.vpc.private_subnets[0]
   monitoring     = true
@@ -79,6 +66,7 @@ module "ec2_instance" {
     CloudWatchAgentServerPolicy        = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
     AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   }
+  associate_public_ip_address          = true
 
   user_data = <<-EOF
                 #!/bin/bash
@@ -156,7 +144,21 @@ module "ec2_instance" {
   user_data_replace_on_change = true
 
   tags = {
-    "Name" = "LexMonolith"
+    "Name" = "${var.app_name}Monolith"
   }
+}
+
+# Create a Route 53 public hosted zone
+resource "aws_route53_zone" "main" {
+  name = "${var.dns_name}"
+}
+
+# Create an A-record pointing to the EC2 instance public IP
+resource "aws_route53_record" "a_record" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "${var.dns_name}"
+  type    = "A"
+  ttl     = "300"
+  records = [module.ec2_instance.public_ip]
 }
 

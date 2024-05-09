@@ -27,6 +27,7 @@ Infra provisioning is as simple as:
 ```sh
 cd terraform
 terraform init
+terraform plan
 terraform apply
 ```
 
