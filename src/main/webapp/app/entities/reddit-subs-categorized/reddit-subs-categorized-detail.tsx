@@ -21,22 +21,22 @@ export const RedditSubsCategorizedDetail = () => {
   return (
     <Row>
       <Col md="8">
-        <h2 data-cy="redditSubsCategorizedDetailsHeading">Reddit Subs Categorized</h2>
+        <h2 data-cy="redditSubsCategorizedDetailsHeading">Subreddit</h2>
         <dl className="jh-entity-details">
           <dt>
             <span id="id">ID</span>
           </dt>
           <dd>{redditSubsCategorizedEntity.id}</dd>
           <dt>
-            <span id="sub">Sub</span>
+            <span id="sub">Subreddit</span>
           </dt>
           <dd>{redditSubsCategorizedEntity.sub}</dd>
           <dt>
-            <span id="cat">Cat</span>
+            <span id="cat">Category</span>
           </dt>
           <dd>{redditSubsCategorizedEntity.cat}</dd>
           <dt>
-            <span id="subcat">Subcat</span>
+            <span id="subcat">Subcategory</span>
           </dt>
           <dd>{redditSubsCategorizedEntity.subcat}</dd>
           <dt>

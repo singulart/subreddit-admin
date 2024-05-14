@@ -45,7 +45,7 @@ export const RedditSubsCategorizedDeleteDialog = () => {
         Confirm delete operation
       </ModalHeader>
       <ModalBody id="subredditsAdminApp.redditSubsCategorized.delete.question">
-        Are you sure you want to delete Reddit Subs Categorized {redditSubsCategorizedEntity.id}?
+        Are you sure you want to delete record {redditSubsCategorizedEntity.id}?
       </ModalBody>
       <ModalFooter>
         <Button color="secondary" onClick={handleClose}>

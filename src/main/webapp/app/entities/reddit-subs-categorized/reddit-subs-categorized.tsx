@@ -146,7 +146,7 @@ export const RedditSubsCategorized = () => {
   return (
     <div>
       <h2 id="reddit-subs-categorized-heading" data-cy="RedditSubsCategorizedHeading">
-        Reddit Subs Categorizeds
+        Subreddits
         <div className="d-flex justify-content-end">
           <Button className="me-2" color="info" onClick={handleSyncList} disabled={loading}>
             <FontAwesomeIcon icon="sync" spin={loading} /> Refresh list
@@ -158,7 +158,7 @@ export const RedditSubsCategorized = () => {
             data-cy="entityCreateButton"
           >
             <FontAwesomeIcon icon="plus" />
-            &nbsp; Create a new Reddit Subs Categorized
+            &nbsp; Create a new record
           </Link>
         </div>
       </h2>
@@ -194,13 +194,13 @@ export const RedditSubsCategorized = () => {
                     ID <FontAwesomeIcon icon={getSortIconByFieldName('id')} />
                   </th>
                   <th className="hand" onClick={sort('sub')}>
-                    Sub <FontAwesomeIcon icon={getSortIconByFieldName('sub')} />
+                    Subreddit <FontAwesomeIcon icon={getSortIconByFieldName('sub')} />
                   </th>
                   <th className="hand" onClick={sort('cat')}>
-                    Cat <FontAwesomeIcon icon={getSortIconByFieldName('cat')} />
+                    Category <FontAwesomeIcon icon={getSortIconByFieldName('cat')} />
                   </th>
                   <th className="hand" onClick={sort('subcat')}>
-                    Subcat <FontAwesomeIcon icon={getSortIconByFieldName('subcat')} />
+                    Subcategory <FontAwesomeIcon icon={getSortIconByFieldName('subcat')} />
                   </th>
                   <th className="hand" onClick={sort('niche')}>
                     Niche <FontAwesomeIcon icon={getSortIconByFieldName('niche')} />
@@ -255,7 +255,7 @@ export const RedditSubsCategorized = () => {
               </tbody>
             </Table>
           ) : (
-            !loading && <div className="alert alert-warning">No Reddit Subs Categorizeds found</div>
+            !loading && <div className="alert alert-warning">No Subreddits Found</div>
           )}
         </InfiniteScroll>
       </div>

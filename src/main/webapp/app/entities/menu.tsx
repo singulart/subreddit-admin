@@ -7,7 +7,7 @@ const EntitiesMenu = () => {
     <>
       {/* prettier-ignore */}
       <MenuItem icon="asterisk" to="/reddit-subs-categorized">
-        Reddit Subs Categorized
+        Subreddit
       </MenuItem>
       {/* jhipster-needle-add-entity-to-menu - JHipster will add entities to the menu here */}
     </>

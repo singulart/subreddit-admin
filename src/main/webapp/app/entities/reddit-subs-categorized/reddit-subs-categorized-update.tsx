@@ -70,7 +70,7 @@ export const RedditSubsCategorizedUpdate = () => {
       <Row className="justify-content-center">
         <Col md="8">
           <h2 id="subredditsAdminApp.redditSubsCategorized.home.createOrEditLabel" data-cy="RedditSubsCategorizedCreateUpdateHeading">
-            Create or edit a Reddit Subs Categorized
+            Create or edit a Subreddit
           </h2>
         </Col>
       </Row>
@@ -84,7 +84,7 @@ export const RedditSubsCategorizedUpdate = () => {
                 <ValidatedField name="id" required readOnly id="reddit-subs-categorized-id" label="ID" validate={{ required: true }} />
               ) : null}
               <ValidatedField
-                label="Sub"
+                label="Subreddit"
                 id="reddit-subs-categorized-sub"
                 name="sub"
                 data-cy="sub"
@@ -95,7 +95,7 @@ export const RedditSubsCategorizedUpdate = () => {
                 }}
               />
               <ValidatedField
-                label="Cat"
+                label="Category"
                 id="reddit-subs-categorized-cat"
                 name="cat"
                 data-cy="cat"
@@ -106,7 +106,7 @@ export const RedditSubsCategorizedUpdate = () => {
                 }}
               />
               <ValidatedField
-                label="Subcat"
+                label="Subcategory"
                 id="reddit-subs-categorized-subcat"
                 name="subcat"
                 data-cy="subcat"
