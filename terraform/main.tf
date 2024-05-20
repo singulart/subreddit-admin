@@ -1,5 +1,6 @@
 provider "aws" {
   region = "us-east-1"
+  profile = var.aws_profile
 }
 
 module "vpc" {
@@ -13,13 +14,23 @@ module "vpc" {
   private_subnets = ["10.0.1.0/24"]
   public_subnets  = ["10.0.101.0/24"]
 
-
-  #### ATTENTION! COST IMPACT!
-  #### NAT Gateways are billed hourly and they are not super cheap. 
-  #### However, in this particular case the WWW connectivity they provide is only needed at the time "user data" script runs.
-  #### With Terraform it's not possible to provision temporary, disposable, resources which get deleted in the end of `apply` phase. 
-  #### With all that said, after `apply` finishes, NAT Gateway needs to be deleted manually, or else there would be monthly cost associated with it. 
-  enable_nat_gateway = true
+  default_security_group_ingress = [
+    {
+      description = "8080 ingress"
+      from_port     = 8080
+      to_port     = 8080
+      protocol    = "TCP"
+      cidr_blocks = "0.0.0.0/0"
+    },
+    
+    {
+      description = "443 ingress"
+      from_port     = 443
+      to_port     = 443
+      protocol    = "TCP"
+      cidr_blocks = "0.0.0.0/0"
+    }
+  ]
 
   default_security_group_egress = [
     {
@@ -55,7 +66,7 @@ module "ec2_instance" {
   name           = "${var.app_name}Monolith"
   instance_type  = var.ec2_type
   ami            = data.aws_ami.selected.id
-  subnet_id      = module.vpc.private_subnets[0]
+  subnet_id      = module.vpc.public_subnets[0]
   monitoring     = true
   create_iam_instance_profile = true
   iam_role_name               = "lex_monolith_ec2_role"
@@ -67,6 +78,7 @@ module "ec2_instance" {
     AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   }
   associate_public_ip_address          = true
+
 
   user_data = <<-EOF
                 #!/bin/bash

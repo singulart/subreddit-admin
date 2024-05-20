@@ -1,3 +1,13 @@
+variable "region" {
+  description = "AWS region"
+  type        = string
+}
+
+variable "aws_profile" {
+  description = "AWS CLI profile"
+  type        = string
+}
+
 variable "app_name" {
   description = "Name of the application"
   type        = string

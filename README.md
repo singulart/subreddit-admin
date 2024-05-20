@@ -2,8 +2,8 @@
 
 JHipster-generated README.md has a lot to improve when production deployment matters are concerned.
 
-This project was created with AWS containerized deployment in mind. The Docker image needs to be built using 64bit architecture:
-`npm run java:docker:arm64`.
+This project was created with AWS containerized deployment in mind. The Docker image needs to be built using ARM64 architecture:
+`npm run java:docker:arm64`. Should a different architecture be required, use appropriate EC2 instance type that supports it.
 
 After the image is built, you can push it to the AWS Elastic Container Repository (make sure to create one beforehand!):
 
@@ -51,7 +51,7 @@ docker run --name tidder \
         -e SPRING_ELASTICSEARCH_URIS=http://reddit-elasticsearch:9200 \
         -e SPRING_DATASOURCE_URL=jdbc:postgresql://reddit-postgresql:5432/SubredditsAdmin \
         -e SPRING_DATASOURCE_PASSWORD=TODO_REPLACE_WITH_AWS_SECRET_MANAGER \
-        -d 557017828051.dkr.ecr.us-east-1.amazonaws.com/subredditsadmin:latest
+        -d <AWS ACCOUNT NUMERIC ID>.dkr.ecr.<AWS REGION>.amazonaws.com/subredditsadmin:latest
 ```
 
 # Note on CloudWatch
