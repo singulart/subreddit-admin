@@ -25,6 +25,7 @@ export const RedditSubsCategorized = () => {
   const redditSubsCategorizedList = useAppSelector(state => state.redditSubsCategorized.entities);
   const loading = useAppSelector(state => state.redditSubsCategorized.loading);
   const links = useAppSelector(state => state.redditSubsCategorized.links);
+  const authenticated = useAppSelector(state => state.authentication.isAuthenticated);
   const updateSuccess = useAppSelector(state => state.redditSubsCategorized.updateSuccess);
 
   const getAllEntities = () => {
@@ -151,15 +152,19 @@ export const RedditSubsCategorized = () => {
           <Button className="me-2" color="info" onClick={handleSyncList} disabled={loading}>
             <FontAwesomeIcon icon="sync" spin={loading} /> Refresh list
           </Button>
-          <Link
-            to="/reddit-subs-categorized/new"
-            className="btn btn-primary jh-create-entity"
-            id="jh-create-entity"
-            data-cy="entityCreateButton"
-          >
-            <FontAwesomeIcon icon="plus" />
-            &nbsp; Create a new record
-          </Link>
+          {authenticated ? (
+            <Link
+              to="/reddit-subs-categorized/new"
+              className="btn btn-primary jh-create-entity"
+              id="jh-create-entity"
+              data-cy="entityCreateButton"
+            >
+              <FontAwesomeIcon icon="plus" />
+              &nbsp; Create a new record
+            </Link>
+          ) : (
+            ''
+          )}
         </div>
       </h2>
       <Row>
@@ -221,34 +226,38 @@ export const RedditSubsCategorized = () => {
                     <td>{redditSubsCategorized.subcat}</td>
                     <td>{redditSubsCategorized.niche}</td>
                     <td className="text-end">
-                      <div className="btn-group flex-btn-group-container">
-                        <Button
-                          tag={Link}
-                          to={`/reddit-subs-categorized/${redditSubsCategorized.id}`}
-                          color="info"
-                          size="sm"
-                          data-cy="entityDetailsButton"
-                        >
-                          <FontAwesomeIcon icon="eye" /> <span className="d-none d-md-inline">View</span>
-                        </Button>
-                        <Button
-                          tag={Link}
-                          to={`/reddit-subs-categorized/${redditSubsCategorized.id}/edit`}
-                          color="primary"
-                          size="sm"
-                          data-cy="entityEditButton"
-                        >
-                          <FontAwesomeIcon icon="pencil-alt" /> <span className="d-none d-md-inline">Edit</span>
-                        </Button>
-                        <Button
-                          onClick={() => (window.location.href = `/reddit-subs-categorized/${redditSubsCategorized.id}/delete`)}
-                          color="danger"
-                          size="sm"
-                          data-cy="entityDeleteButton"
-                        >
-                          <FontAwesomeIcon icon="trash" /> <span className="d-none d-md-inline">Delete</span>
-                        </Button>
-                      </div>
+                      {authenticated ? (
+                        <div className="btn-group flex-btn-group-container">
+                          <Button
+                            tag={Link}
+                            to={`/reddit-subs-categorized/${redditSubsCategorized.id}`}
+                            color="info"
+                            size="sm"
+                            data-cy="entityDetailsButton"
+                          >
+                            <FontAwesomeIcon icon="eye" /> <span className="d-none d-md-inline">View</span>
+                          </Button>
+                          <Button
+                            tag={Link}
+                            to={`/reddit-subs-categorized/${redditSubsCategorized.id}/edit`}
+                            color="primary"
+                            size="sm"
+                            data-cy="entityEditButton"
+                          >
+                            <FontAwesomeIcon icon="pencil-alt" /> <span className="d-none d-md-inline">Edit</span>
+                          </Button>
+                          <Button
+                            onClick={() => (window.location.href = `/reddit-subs-categorized/${redditSubsCategorized.id}/delete`)}
+                            color="danger"
+                            size="sm"
+                            data-cy="entityDeleteButton"
+                          >
+                            <FontAwesomeIcon icon="trash" /> <span className="d-none d-md-inline">Delete</span>
+                          </Button>
+                        </div>
+                      ) : (
+                        ''
+                      )}
                     </td>
                   </tr>
                 ))}

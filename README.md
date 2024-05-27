@@ -48,7 +48,7 @@ However, if we don't want web browsers to complain that the website is not secur
 Requesting SSL certificate from the free Let's Encrypt service (don't forget to donate them some dollars!) is done using command line tool certbot:
 
 ```sh
-certbot certonly --dns-route53 --work-dir=~/certbot --config-dir==~/certbot --logs-dir=~/certbot -d subreddits.xyz --agree-tos --email <your email>
+certbot certonly --dns-route53 --work-dir=~/certbot --config-dir=~/certbot --logs-dir=~/certbot -d subreddits.xyz --agree-tos --no-eff-email --email <your email>
 ```
 
 This command, if successful, produces two files that you need to stitch together and convert to a different format.
