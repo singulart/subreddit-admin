@@ -2,10 +2,10 @@
 
 JHipster-generated README.md has a lot to improve when production deployment matters are concerned.
 
-This project was created with AWS containerized deployment in mind. The Docker image needs to be built using ARM64 architecture:
+This project was created with AWS containerized deployment in mind. The Docker image needs to be built for ARM64 architecture:
 `npm run java:docker:arm64`. Should a different architecture be required, use appropriate EC2 instance type that supports it.
 
-After the image is built, you can push it to the AWS Elastic Container Repository (make sure to create one beforehand!):
+Pushing the built image to the AWS Elastic Container Repository (make sure to create one beforehand!) is done using docker CLI:
 
 ```sh
 docker tag subredditsadmin <AWS ACCOUNT NUMERIC ID>.dkr.ecr.<AWS REGION>.amazonaws.com/subredditsadmin:latest`
@@ -20,9 +20,9 @@ aws ecr get-login-password --region <AWS REGION>  | docker login --username AWS 
 
 # (Almost) automated AWS infra
 
-AWS infrastructure creation was automated using Terraform. To save on AWS costs, this project uses only one EC2 to run both the Java app and its dependencies: PostgreSQL database and ElasticSearch. This is obviously not a recommended way to deal with production systems, but it does the job as a proof of concept.
+Most of the AWS infrastructure provisioning is automated using Terraform. To save on AWS costs, this project uses only one EC2 virtual instance to run both the Java app and its dependencies: PostgreSQL and ElasticSearch. Granted, this is not a recommended way to deal with production systems, but it does the job as a proof of concept.
 
-Infra provisioning is as simple as:
+AWS environment provisioning is as simple as:
 
 ```sh
 cd terraform
@@ -31,32 +31,82 @@ terraform plan
 terraform apply
 ```
 
-This will take a while to execute, but in the end you'll get the ready-to-use AWS VPC. Both PostgreSQL and Elastic will be up and running! PostgreSQL user and application database will also be created for you. All that's left to do is to deploy the Java application.
+This will take a while to execute, but in the end you'll get the ready-to-use AWS environment. Both PostgreSQL and Elastic will be up and running! PostgreSQL user and application database will also be created for you. All that's left to do is to deploy the Java application.
+
+## Name Servers
+
+The resolution of a website's DNS name to the IP of EC2 instance it runs on is not easy to automate. The main difficulty is that whenever Terraform creates a Route53 Hosted Zone, AWS assignes it a random set of 3-4 name servers, and there is no control over this from the client's side. Therefore, you can't set, for example, `ns-1397.awsdns-46.org.` in your domain registrar's admin panel and expect this name server to be assigned to the Hosted Zone when you destroy and recreate the AWS infra next time.
+
+This means, that after Terraform finishes its job, you need to add name server assigned to a Hosted Zone to your domain settings in the domain registrar's admin panel. Be aware that these changes will take time to propagate. After couple of hours you will be able to execute nslookup on your domain name and resolve it to the proper EC2 IP.
+
+# SSL Certificates
+
+Technically, this application can be used without any SSL certificates. If this works for your use-case, simply run it using the default HTTP port 8080 and whitelist incoming traffic to this port in the EC2 security group.
+
+However, if we don't want web browsers to complain that the website is not secure, SSL needs to be properly set up.
+
+Requesting SSL certificate from the free Let's Encrypt service (don't forget to donate them some dollars!) is done using command line tool certbot:
+
+```sh
+certbot certonly --dns-route53 --work-dir=~/certbot --config-dir==~/certbot --logs-dir=~/certbot -d subreddits.xyz --agree-tos --email <your email>
+```
+
+This command, if successful, produces two files that you need to stitch together and convert to a different format.
+
+```sh
+cat /home/ec2-user/=~/certbot/live/subreddits.xyz/fullchain.pem /home/ec2-user/=~/certbot/live/subreddits.xyz/privkey.pem > keycert.pem
+
+openssl pkcs12 -export -in keycert.pem -out keystore.p12 -name myalias
+```
+
+Note: `openssl` will ask to create a keystore passsword. The resulting `keystore.p12` is the Java keystore that the application needs to enable HTTPS and SSL.
 
 # Manual Deployment to EC2
 
 Deployment of the Java app to EC2 was not automated with Terraform, so you need to ssh to the EC2 and spin it up manually. If you wonder why: it's much faster to hop on a EC2 box and run one `docker run` command manually than re-create the entire instance from scratch with Terraform.
 
-The easiest way to access the EC2 in private VPC subnet without compromising the overall security is through AWS Session Manager. It will log in under the different user, so the first thing you'd want to do is to switch back to ec2-user: `sudo -i -u ec2-user`.
+The easiest way to access the EC2 is using AWS Session Manager. It will log in under the different user, so the first thing you'd want to do is to switch back to ec2-user: `sudo -i -u ec2-user`.
 
 Then simply run the Java app:
 
+## No SSL
+
 ```sh
 docker run --name tidder \
-        --network=reddit-network \
-        --log-driver=awslogs \
-        --log-opt awslogs-group=/ec2/app \
-        --log-opt awslogs-create-group=true \
-        -p 8080:8080 \
-        -e SPRING_ELASTICSEARCH_URIS=http://reddit-elasticsearch:9200 \
-        -e SPRING_DATASOURCE_URL=jdbc:postgresql://reddit-postgresql:5432/SubredditsAdmin \
-        -e SPRING_DATASOURCE_PASSWORD=TODO_REPLACE_WITH_AWS_SECRET_MANAGER \
-        -d <AWS ACCOUNT NUMERIC ID>.dkr.ecr.<AWS REGION>.amazonaws.com/subredditsadmin:latest
+  --network=reddit-network \
+  --log-driver=awslogs \
+  --log-opt awslogs-group=/ec2/app \
+  --log-opt awslogs-create-group=true \
+  -p 8080:8080 \
+  -e SPRING_ELASTICSEARCH_URIS=http://reddit-elasticsearch:9200 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://reddit-postgresql:5432/SubredditsAdmin \
+  -e SPRING_DATASOURCE_PASSWORD=TODO_REPLACE_WITH_AWS_SECRET_MANAGER \
+  -d <AWS ACCOUNT NUMERIC ID>.dkr.ecr.<AWS REGION>.amazonaws.com/subredditsadmin:latest
+```
+
+## With SSL
+
+```sh
+docker run --name tidder \
+	--network=reddit-network \
+	--log-driver=awslogs \
+	--log-opt awslogs-group=/ec2/app \
+	--log-opt awslogs-create-group=true \
+	-p 443:443 \
+	-v /home/ec2-user:/opt/java/ssl \
+	-e SPRING_ELASTICSEARCH_URIS=http://reddit-elasticsearch:9200 \
+	-e SPRING_DATASOURCE_URL=jdbc:postgresql://reddit-postgresql:5432/SubredditsAdmin \
+	-e SPRING_DATASOURCE_PASSWORD=TODO_REPLACE_WITH_AWS_SECRET_MANAGER \
+	-e SERVER_PORT=443 \
+	-e SERVER_SSL_KEYSTORE=/opt/java/ssl/keystore.p12 \
+	-e SERVER_SSL_KEYSTOREPASSWORD=<PASSWORD FOR YOUR KEYSTORE> \
+	-e SERVER_SSL_KEYSTORETYPE=PKCS12 \
+	-d <AWS ACCOUNT NUMERIC ID>.dkr.ecr.<AWS REGION>.amazonaws.com/subredditsadmin:latest
 ```
 
 # Note on CloudWatch
 
-EC2 logs from all three ifrastructure pieces (the application itself, the DB and the search index) are sent to AWS CloudWatch groups "/ec2/XYZ". This should give enough insight into what's going on.
+EC2 logs from all three infrastructure pieces (the application itself, the DB and the search index) are sent to AWS CloudWatch groups "/ec2/XYZ". This should give enough insight into what's going on.
 
 # Reddit Subs Admin UI
 

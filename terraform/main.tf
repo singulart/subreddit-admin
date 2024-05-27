@@ -16,15 +16,7 @@ module "vpc" {
 
   default_security_group_ingress = [
     {
-      description = "8080 ingress"
-      from_port     = 8080
-      to_port     = 8080
-      protocol    = "TCP"
-      cidr_blocks = "0.0.0.0/0"
-    },
-    
-    {
-      description = "443 ingress"
+      description = "HTTPS ingress"
       from_port     = 443
       to_port     = 443
       protocol    = "TCP"
@@ -76,6 +68,8 @@ module "ec2_instance" {
     AmazonSSMManagedInstanceCore       = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
     CloudWatchAgentServerPolicy        = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
     AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+    AmazonRoute53ReadOnlyAccess        = "arn:aws:iam::aws:policy/AmazonRoute53ReadOnlyAccess"
+    AmazonRoute53AutoNamingFullAccess  = "arn:aws:iam::aws:policy/AmazonRoute53AutoNamingFullAccess"    
   }
   associate_public_ip_address          = true
 
@@ -98,9 +92,11 @@ module "ec2_instance" {
 
                 # Update and install packages
                 yum update -y
-                yum install -y awslogs 
-                yum install -y $POSTGRESQL_VERSION 
-                yum install -y docker
+                yum install -y awslogs
+                yum install -y pip
+                yum install -y python3-certbot-dns-route53
+                yum install -y certbot
+                yum install -y $POSTGRESQL_VERSION
 
                 # Configure and start AWS Logs
                 systemctl start awslogsd.service
