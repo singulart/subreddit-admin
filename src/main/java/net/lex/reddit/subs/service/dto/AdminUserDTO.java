@@ -1,5 +1,6 @@
 package net.lex.reddit.subs.service.dto;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
 import java.time.Instant;
@@ -12,6 +13,7 @@ import net.lex.reddit.subs.domain.User;
 /**
  * A DTO representing a user, with his authorities.
  */
+@Hidden
 public class AdminUserDTO implements Serializable {
 
     private static final long serialVersionUID = 1L;

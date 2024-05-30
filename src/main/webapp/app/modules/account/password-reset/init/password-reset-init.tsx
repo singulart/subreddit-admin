@@ -32,28 +32,9 @@ export const PasswordResetInit = () => {
     <div>
       <Row className="justify-content-center">
         <Col md="8">
-          <h1>Reset your password</h1>
           <Alert color="warning">
-            <p>Enter the email address you used to register</p>
+            <p>To reset your password, contact project administrators.</p>
           </Alert>
-          <ValidatedForm onSubmit={handleValidSubmit}>
-            <ValidatedField
-              name="email"
-              label="Email"
-              placeholder="Your email"
-              type="email"
-              validate={{
-                required: { value: true, message: 'Your email is required.' },
-                minLength: { value: 5, message: 'Your email is required to be at least 5 characters.' },
-                maxLength: { value: 254, message: 'Your email cannot be longer than 50 characters.' },
-                validate: v => isEmail(v) || 'Your email is invalid.',
-              }}
-              data-cy="emailResetPassword"
-            />
-            <Button color="primary" type="submit" data-cy="submit">
-              Reset password
-            </Button>
-          </ValidatedForm>
         </Col>
       </Row>
     </div>

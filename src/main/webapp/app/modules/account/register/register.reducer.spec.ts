@@ -43,7 +43,7 @@ describe('Creating account tests', () => {
     ).toEqual({
       ...initialState,
       registrationSuccess: true,
-      successMessage: 'Registration saved! Please check your email for confirmation.',
+      successMessage: 'Registration saved! New users confirmation process is manual, so please be patient!',
     });
   });
 

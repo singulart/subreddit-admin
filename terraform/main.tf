@@ -1,6 +1,10 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.region
   profile = var.aws_profile
+}
+
+data "http" "myip" {
+  url = "https://ipv4.icanhazip.com"
 }
 
 module "vpc" {
@@ -21,6 +25,12 @@ module "vpc" {
       to_port     = 443
       protocol    = "TCP"
       cidr_blocks = "0.0.0.0/0"
+    }, 
+    {
+      from_port = 5432
+      to_port = 5432
+      protocol = "tcp"
+      cidr_blocks = ["${chomp(data.http.myip.response_body)}/32"]
     }
   ]
 
@@ -61,7 +71,7 @@ module "ec2_instance" {
   subnet_id      = module.vpc.public_subnets[0]
   monitoring     = true
   create_iam_instance_profile = true
-  iam_role_name               = "lex_monolith_ec2_role"
+  iam_role_name               = "${var.app_name}_ec2_role"
   iam_role_path               = "/ec2/"
   iam_role_description        = "Enables sending logs to CloudWatch, pulling from ECR and connecting using Session Manager"
   iam_role_policies = {
