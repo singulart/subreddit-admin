@@ -188,7 +188,6 @@ jhipster:
   mail:
     from: SubredditsAdmin@localhost
   api-docs:
-    default-include-pattern: /api/**
     title: Subreddits API
     description: Subreddits API documentation
     version: 1.0.0

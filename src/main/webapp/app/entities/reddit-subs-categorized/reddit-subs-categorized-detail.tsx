@@ -12,6 +12,7 @@ export const RedditSubsCategorizedDetail = () => {
   const dispatch = useAppDispatch();
 
   const { id } = useParams<'id'>();
+  const authenticated = useAppSelector(state => state.authentication.isAuthenticated);
 
   useEffect(() => {
     dispatch(getEntity(id));
@@ -48,9 +49,13 @@ export const RedditSubsCategorizedDetail = () => {
           <FontAwesomeIcon icon="arrow-left" /> <span className="d-none d-md-inline">Back</span>
         </Button>
         &nbsp;
-        <Button tag={Link} to={`/reddit-subs-categorized/${redditSubsCategorizedEntity.id}/edit`} replace color="primary">
-          <FontAwesomeIcon icon="pencil-alt" /> <span className="d-none d-md-inline">Edit</span>
-        </Button>
+        {authenticated ? (
+          <Button tag={Link} to={`/reddit-subs-categorized/${redditSubsCategorizedEntity.id}/edit`} replace color="primary">
+            <FontAwesomeIcon icon="pencil-alt" /> <span className="d-none d-md-inline">Edit</span>
+          </Button>
+        ) : (
+          ''
+        )}
       </Col>
     </Row>
   );

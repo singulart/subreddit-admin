@@ -23,6 +23,7 @@ export const RedditSubsCategorizedUpdate = () => {
   const loading = useAppSelector(state => state.redditSubsCategorized.loading);
   const updating = useAppSelector(state => state.redditSubsCategorized.updating);
   const updateSuccess = useAppSelector(state => state.redditSubsCategorized.updateSuccess);
+  const authenticated = useAppSelector(state => state.authentication.isAuthenticated);
 
   const handleClose = () => {
     navigate('/reddit-subs-categorized');
@@ -133,10 +134,14 @@ export const RedditSubsCategorizedUpdate = () => {
                 <span className="d-none d-md-inline">Back</span>
               </Button>
               &nbsp;
-              <Button color="primary" id="save-entity" data-cy="entityCreateSaveButton" type="submit" disabled={updating}>
-                <FontAwesomeIcon icon="save" />
-                &nbsp; Save
-              </Button>
+              {authenticated ? (
+                <Button color="primary" id="save-entity" data-cy="entityCreateSaveButton" type="submit" disabled={updating}>
+                  <FontAwesomeIcon icon="save" />
+                  &nbsp; Save
+                </Button>
+              ) : (
+                <div />
+              )}
             </ValidatedForm>
           )}
         </Col>
