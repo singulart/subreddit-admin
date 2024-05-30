@@ -9,6 +9,13 @@ import { clearAuthentication } from 'app/shared/reducers/authentication';
 import ErrorBoundary from 'app/shared/error/error-boundary';
 import AppComponent from 'app/app';
 import { loadIcons } from 'app/config/icon-loader';
+import ReactGA from 'react-ga';
+
+const isGAEnabled = process.env.NODE_ENV === 'production';
+
+if (isGAEnabled) {
+  ReactGA.initialize('G-B03GKYQBD8');
+}
 
 const store = getStore();
 
