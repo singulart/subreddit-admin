@@ -134,8 +134,9 @@ module "ec2_instance" {
   iam_role_description        = "Minimal set of permissions for the EC2 VM"
   iam_role_policies = {
     AmazonSSMManagedInstanceCore       = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
-    AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-    AmazonRoute53ReadOnlyAccess        = "arn:aws:iam::aws:policy/AmazonRoute53ReadOnlyAccess"
+    CloudWatchAgentServerPolicy        = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+    AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+    AmazonRoute53ReadOnlyAccess        = "arn:aws:iam::aws:policy/AmazonRoute53ReadOnlyAccess",
     AmazonRoute53AutoNamingFullAccess  = "arn:aws:iam::aws:policy/AmazonRoute53AutoNamingFullAccess"
   }
   associate_public_ip_address          = true
@@ -159,10 +160,14 @@ module "ec2_instance" {
 
                 # Update and install packages
                 yum update -y
+                yum install -y amazon-ssm-agent
                 yum install -y pip
                 yum install -y python3-certbot-dns-route53
                 yum install -y certbot
                 yum install -y $POSTGRESQL_VERSION
+
+                systemctl enable amazon-ssm-agent
+                systemctl start amazon-ssm-agent
 
                 # Install Docker and configure the service
                 yum install -y docker
