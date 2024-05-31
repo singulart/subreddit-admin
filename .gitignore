@@ -1,4 +1,5 @@
-terraform/.terraform
+.vscode/
+terraform/.terraform*
 ######################
 # Node
 ######################
