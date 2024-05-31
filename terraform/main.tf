@@ -7,6 +7,11 @@ data "http" "myip" {
   url = "https://ipv4.icanhazip.com"
 }
 
+# data "aws_ip_ranges" "instance_connect" {
+#   regions  = [var.region]
+#   services = ["ec2_instance_connect"]
+# }
+
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.8"
@@ -30,7 +35,14 @@ module "vpc" {
       from_port = 5432
       to_port = 5432
       protocol = "tcp"
-      cidr_blocks = ["${chomp(data.http.myip.response_body)}/32"]
+      cidr_blocks = "${chomp(data.http.myip.response_body)}/32"
+    }, 
+    {
+      description = "SSH port is necessary for EC2 Instance Connect"
+      from_port = 22
+      to_port = 22
+      protocol = "tcp"
+      cidr_blocks = "${chomp(data.http.myip.response_body)}/32" # data.aws_ip_ranges.instance_connect.cidr_blocks[0]
     }
   ]
 
@@ -61,11 +73,57 @@ data "aws_ami" "selected" {
   }
 }
 
+# resource aws_iam_group instance_connect {
+#   name = "ec2_instance_connect"
+# }
+
+# # --------------------------------------------------------------------------------
+# # policy to allow use of instance connect to the instance(s)
+# # derived from arn:aws:iam::aws:policy/EC2InstanceConnect
+# # --------------------------------------------------------------------------------
+# resource aws_iam_policy instance_connect {
+#   name = "ec2_instance_connect"
+#   description = "Allows use of Instance Connect to the constructed instance(s)"
+#   policy      = <<-EOF
+#         {
+#           "Version": "2012-10-17",
+#           "Statement": [
+#               {
+#                   "Sid": "EC2InstanceConnect",
+#                   "Action": [
+#                       "ec2:DescribeInstances",
+#                       "ec2-instance-connect:SendSSHPublicKey"
+#                   ],
+#                   "Effect": "Allow",
+#                   "Resource": "*",
+#                   "Condition": {
+#                     "StringEquals": {
+#                       "ec2:osuser": "ec2-user"
+#                     }
+#                   }
+#               }
+#           ]
+#         }
+#         EOF
+# }
+
+# resource aws_iam_group_policy_attachment instance_connect {
+#   group      = aws_iam_group.instance_connect.name
+#   policy_arn = aws_iam_policy.instance_connect.arn
+# }
+
+module "key_pair" {
+  source = "terraform-aws-modules/key-pair/aws"
+
+  key_name   = "${var.app_name}_key"
+  public_key = file("${var.ec2_key}")
+}
+
 module "ec2_instance" {
   source  = "terraform-aws-modules/ec2-instance/aws"
   version = "~> 5.6"
 
-  name           = "${var.app_name}Monolith"
+  name           = "${var.app_name}_box"
   instance_type  = var.ec2_type
   ami            = data.aws_ami.selected.id
   subnet_id      = module.vpc.public_subnets[0]
@@ -73,16 +131,15 @@ module "ec2_instance" {
   create_iam_instance_profile = true
   iam_role_name               = "${var.app_name}_ec2_role"
   iam_role_path               = "/ec2/"
-  iam_role_description        = "Enables sending logs to CloudWatch, pulling from ECR and connecting using Session Manager"
+  iam_role_description        = "Minimal set of permissions for the EC2 VM"
   iam_role_policies = {
     AmazonSSMManagedInstanceCore       = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
-    CloudWatchAgentServerPolicy        = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
     AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
     AmazonRoute53ReadOnlyAccess        = "arn:aws:iam::aws:policy/AmazonRoute53ReadOnlyAccess"
-    AmazonRoute53AutoNamingFullAccess  = "arn:aws:iam::aws:policy/AmazonRoute53AutoNamingFullAccess"    
+    AmazonRoute53AutoNamingFullAccess  = "arn:aws:iam::aws:policy/AmazonRoute53AutoNamingFullAccess"
   }
   associate_public_ip_address          = true
-
+  key_name = module.key_pair.key_pair_name
 
   user_data = <<-EOF
                 #!/bin/bash
@@ -102,23 +159,18 @@ module "ec2_instance" {
 
                 # Update and install packages
                 yum update -y
-                yum install -y awslogs
                 yum install -y pip
                 yum install -y python3-certbot-dns-route53
                 yum install -y certbot
                 yum install -y $POSTGRESQL_VERSION
 
-                # Configure and start AWS Logs
-                systemctl start awslogsd.service
-                systemctl enable awslogsd.service
-
                 # Install Docker and configure the service
-                amazon-linux-extras install docker -y
-                service docker start
+                yum install -y docker
+                systemctl start docker
                 usermod -a -G docker ec2-user
 
                 # Create persistent location for PostgreSQL data
-                sudo mkdir -p $POSTGRES_DATA_DIR
+                mkdir -p $POSTGRES_DATA_DIR
 
                 # Create Docker network
                 docker network create $DOCKER_NETWORK
@@ -126,7 +178,7 @@ module "ec2_instance" {
                 # Start PostgreSQL container
                 docker run --name $POSTGRES_CONTAINER \
                   --network=$DOCKER_NETWORK \
-                  --log-driver=awslogs \
+                  --log-driver awslogs \
                   --log-opt awslogs-group=$AWSLOGS_GROUP_PG \
                   --log-opt awslogs-create-group=true \
                   -p 5432:5432 \
@@ -150,7 +202,7 @@ module "ec2_instance" {
                 # Start Elasticsearch container
                 docker run --name $ES_CONTAINER \
                   --network=$DOCKER_NETWORK \
-                  --log-driver=awslogs \
+                  --log-driver awslogs \
                   --log-opt awslogs-group=$AWSLOGS_GROUP_ES \
                   --log-opt awslogs-create-group=true \
                   -p 9200:9200 \
@@ -162,7 +214,7 @@ module "ec2_instance" {
   user_data_replace_on_change = true
 
   tags = {
-    "Name" = "${var.app_name}Monolith"
+    "Name" = "${var.app_name}"
   }
 }
 

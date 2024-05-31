@@ -27,3 +27,8 @@ variable "ec2_type" {
   description = "Class of EC2 intance used"
   type        = string
 }
+
+variable "ec2_key" {
+  description = "EC2 public key location"
+  type        = string
+}
