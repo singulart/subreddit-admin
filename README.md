@@ -74,7 +74,7 @@ Then simply run the Java app:
 ```sh
 docker run --name tidder \
   --network=reddit-network \
-  --log-driver=awslogs \
+  --log-driver awslogs \
   --log-opt awslogs-group=/ec2/app \
   --log-opt awslogs-create-group=true \
   -p 8080:8080 \
@@ -89,7 +89,7 @@ docker run --name tidder \
 ```sh
 docker run --name tidder \
 	--network=reddit-network \
-	--log-driver=awslogs \
+	--log-driver awslogs \
 	--log-opt awslogs-group=/ec2/app \
 	--log-opt awslogs-create-group=true \
 	-p 443:443 \
