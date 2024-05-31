@@ -10,6 +10,7 @@ import { overridePaginationStateWithQueryParams } from 'app/shared/util/entity-u
 import { useAppDispatch, useAppSelector } from 'app/config/store';
 
 import { searchEntities, getEntities, reset } from './reddit-subs-categorized.reducer';
+import ReactGA from 'react-ga';
 
 export const RedditSubsCategorized = () => {
   const dispatch = useAppDispatch();
@@ -30,6 +31,11 @@ export const RedditSubsCategorized = () => {
 
   const getAllEntities = () => {
     if (search) {
+      ReactGA.event({
+        category: 'Search',
+        action: 'Search Term Entered',
+        label: search,
+      });
       dispatch(
         searchEntities({
           query: search,
