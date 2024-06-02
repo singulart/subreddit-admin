@@ -314,3 +314,35 @@ http://stackoverflow.com/questions/23436430/bootstrap-3-input-group-100-width */
 }
 
 /* jhipster-needle-scss-add-main JHipster will add new css style */
+
+/* src/CookieConsent.css */
+
+.cookie-consent {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  text-align: center;
+  padding: 1em;
+  z-index: 1000;
+}
+
+.cookie-consent p {
+  margin: 0;
+  padding: 0 1em;
+}
+
+.cookie-consent button {
+  margin-left: 1em;
+  padding: 0.5em 1em;
+  background-color: #4caf50;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.cookie-consent button:hover {
+  background-color: #45a049;
+}

@@ -20,13 +20,13 @@ export const Home = () => {
         <p className="lead">
           <a href="/reddit-subs-categorized">170k subs</a> are assigned three categories:{' '}
         </p>
-        <p className="lead">
+        <div className="lead">
           <ul>
             <li>A top level, most generic one</li>
             <li>A more specific one</li>
             <li>Niche: the most specific one</li>
           </ul>
-        </p>
+        </div>
         <p className="lead">
           The ultimate hope is that Reddit researchers, marketers, community mods or application builders will benefit from this dataset.
         </p>
