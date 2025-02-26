@@ -48,13 +48,13 @@ However, if we don't want web browsers to complain that the website is not secur
 Requesting SSL certificate from the free Let's Encrypt service (don't forget to donate them some dollars!) is done using command line tool certbot:
 
 ```sh
-certbot certonly --dns-route53 --work-dir=~/certbot --config-dir=~/certbot --logs-dir=~/certbot -d subreddits.xyz --agree-tos --no-eff-email --email <your email>
+certbot certonly --dns-route53 --work-dir=certbot --config-dir=certbot --logs-dir=certbot -d subreddits.xyz --agree-tos --no-eff-email --email <your email>
 ```
 
 This command, if successful, produces two files that you need to stitch together and convert to a different format.
 
 ```sh
-cat /home/ec2-user/=~/certbot/live/subreddits.xyz/fullchain.pem /home/ec2-user/=~/certbot/live/subreddits.xyz/privkey.pem > keycert.pem
+cat /home/ec2-user/certbot/live/subreddits.xyz/fullchain.pem /home/ec2-user/certbot/live/subreddits.xyz/privkey.pem > keycert.pem
 
 openssl pkcs12 -export -in keycert.pem -out keystore.p12 -name myalias
 ```
@@ -103,6 +103,10 @@ docker run --name tidder \
 	-e SERVER_SSL_KEYSTORETYPE=PKCS12 \
 	-d <AWS ACCOUNT NUMERIC ID>.dkr.ecr.<AWS REGION>.amazonaws.com/subredditsadmin:latest
 ```
+
+# 🔐 Note on Application Security
+
+By default, the application applies the hard-coded base64 JWT secret value which can be used to create admin tokens. For production, make sure you override this default using `JHIPSTER_SECURITY_AUTHENTICATION_JWT_BASE64_SECRET` environment variable. See production properties bundle for details.
 
 # Note on CloudWatch
 

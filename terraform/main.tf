@@ -139,14 +139,26 @@ module "ec2_instance" {
     AmazonRoute53ReadOnlyAccess        = "arn:aws:iam::aws:policy/AmazonRoute53ReadOnlyAccess",
     AmazonRoute53AutoNamingFullAccess  = "arn:aws:iam::aws:policy/AmazonRoute53AutoNamingFullAccess"
   }
+  enable_volume_tags = false
+  root_block_device = [
+    {
+      encrypted   = true
+      volume_type = "gp3"
+      throughput  = 200
+      volume_size = 50
+      tags = {
+        Name = "my-root-block"
+      }
+    },
+  ]
   associate_public_ip_address          = true
   key_name = module.key_pair.key_pair_name
 
   user_data = <<-EOF
                 #!/bin/bash
 
-                POSTGRESQL_VERSION=postgresql15
-                ELASTIC_VERSION=8.13.3
+                POSTGRESQL_VERSION=postgresql16
+                ELASTIC_VERSION=8.17.2
 
                 DOCKER_NETWORK=reddit-network
                 POSTGRES_CONTAINER=reddit-postgresql
